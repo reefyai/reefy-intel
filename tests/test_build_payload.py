@@ -31,6 +31,9 @@ class BuildPayloadTests(unittest.TestCase):
                 (output / 'common-root/usr/share/reefy/providers/intel').read_text(),
                 '1\n')
             run.assert_called_once()
+            command = run.call_args.args[0]
+            self.assertIn('-mkfs-time', command)
+            self.assertIn('-all-root', command)
 
 
 if __name__ == '__main__':

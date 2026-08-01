@@ -28,6 +28,7 @@ def main():
     subprocess.run([
         'mksquashfs', str(payload), str(args.output / 'common.squashfs'),
         '-noappend', '-comp', 'xz', '-b', '1M', '-Xdict-size', '1M',
+        '-all-root', '-all-time', '0', '-mkfs-time', '0', '-no-xattrs',
         '-no-progress',
     ], check=True)
 
