@@ -28,8 +28,14 @@ class BuildPayloadTests(unittest.TestCase):
             self.assertEqual(config['reefy_build_id'], 'build-id')
             self.assertEqual(config['kernel_abi_digest'], 'sha256:abi')
             self.assertEqual(
+                config['activation_hook'], 'usr/lib/reefy/activate')
+            self.assertEqual(
                 (output / 'common-root/usr/share/reefy/providers/intel').read_text(),
                 '1\n')
+            hook = output / 'common-root/usr/lib/reefy/activate'
+            self.assertEqual(hook.stat().st_mode & 0o777, 0o755)
+            self.assertIn(
+                'intel.com/npu=all', hook.read_text())
             run.assert_called_once()
             command = run.call_args.args[0]
             self.assertIn('-mkfs-time', command)

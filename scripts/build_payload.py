@@ -24,6 +24,10 @@ def main():
     marker = payload / 'usr/share/reefy/providers/intel'
     marker.parent.mkdir(parents=True, exist_ok=True)
     marker.write_text(f'{VERSION}\n')
+    hook = payload / 'usr/lib/reefy/activate'
+    hook.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(ROOT / 'scripts/activate', hook)
+    hook.chmod(0o755)
     args.output.mkdir(parents=True, exist_ok=True)
     subprocess.run([
         'mksquashfs', str(payload), str(args.output / 'common.squashfs'),
@@ -39,6 +43,7 @@ def main():
         'version': VERSION,
         'architecture': 'x86_64',
         'publisher': 'reefyai',
+        'activation_hook': 'usr/lib/reefy/activate',
         'reefy_build_id': args.reefy_build_id,
         'kernel_abi_digest': args.kernel_abi_digest,
     }
