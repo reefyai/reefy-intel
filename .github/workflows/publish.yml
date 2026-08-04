@@ -53,6 +53,9 @@ jobs:
         run: |
           . inputs/metadata.env
           python3 scripts/build_payload.py \
+            --modules-root inputs/modules-root \
+            --firmware-root inputs/firmware-root \
+            --kernel-release "$KERNEL_RELEASE" \
             --reefy-build-id "$REEFY_BUILD_ID" \
             --kernel-abi-digest "sha256:$REEFY_KERNEL_ABI_SHA256" \
             --output output
@@ -76,7 +79,8 @@ jobs:
           output=$(oras push "ghcr.io/reefyai/reefy-intel:$tag" \
             --artifact-type application/vnd.reefy.artifact.v1 \
             --config output/config.json:application/vnd.reefy.artifact.config.v1+json \
-            output/common.squashfs:application/vnd.reefy.squashfs.v1)
+            output/common.squashfs:application/vnd.reefy.squashfs.v1 \
+            output/kernel.squashfs:application/vnd.reefy.squashfs.v1)
           printf '%s\n' "$output"
           digest=$(printf '%s\n' "$output" | sed -n 's/^Digest: //p')
           test -n "$digest"
@@ -95,4 +99,5 @@ jobs:
           subject-path: |
             output/config.json
             output/common.squashfs
+            output/kernel.squashfs
             output/sbom.spdx.json

@@ -1,11 +1,85 @@
 #!/bin/sh
 set -eu
 
-mkdir -p /etc/cdi
+IFS=:
+set -- ${REEFY_ARTIFACT_MOUNTS:?}
+unset IFS
+COMMON=${1:?missing common Intel layer}
+KERNEL_LAYER=${2:?missing Intel kernel layer}
+KERNEL_RELEASE=$(uname -r)
+MODULE_SOURCE="$KERNEL_LAYER/lib/modules/$KERNEL_RELEASE/extra/intel"
+I915_FIRMWARE_SOURCE="$COMMON/lib/firmware/i915"
+XE_FIRMWARE_SOURCE="$COMMON/lib/firmware/xe"
+NPU_FIRMWARE_SOURCE="$COMMON/lib/firmware/intel/vpu"
+
+[ -d "$MODULE_SOURCE" ]
+[ -d "$I915_FIRMWARE_SOURCE" ]
+[ -d "$XE_FIRMWARE_SOURCE" ]
+[ -d "$NPU_FIRMWARE_SOURCE" ]
+
+bind_read_only() {
+    source=$1
+    target=$2
+    mkdir -p "$target"
+    if ! mountpoint -q "$target"; then
+        mount --bind "$source" "$target"
+        mount -o remount,bind,ro,nodev,nosuid "$source" "$target"
+    fi
+}
+
+bind_read_only "$MODULE_SOURCE" \
+    "/lib/modules/$KERNEL_RELEASE/extra/intel"
+bind_read_only "$I915_FIRMWARE_SOURCE" /lib/firmware/i915
+bind_read_only "$XE_FIRMWARE_SOURCE" /lib/firmware/xe
+bind_read_only "$NPU_FIRMWARE_SOURCE" /lib/firmware/intel/vpu
+
+mkdir -p /run/cdi
+rm -f /run/cdi/intel-gpu.json /run/cdi/intel-gpu.tmp.json \
+    /run/cdi/intel-npu.json /run/cdi/intel-npu.tmp.json \
+    /etc/cdi/intel-gpu.json /etc/cdi/intel-npu.json
+
+depmod "$KERNEL_RELEASE"
+
+# These modules use their own PCI/ACPI match tables. Loading all three lets
+# the matched Intel driver bind without keeping product-ID policy in Reefy OS.
+for module in xe i915 intel_vpu; do
+    modprobe "$module"
+    echo "Intel provider loaded $module"
+done
+
 python3 - <<'PY'
 import glob
 import json
 import os
+import time
+
+
+def bound_driver(path):
+    driver = os.path.join(path, 'device', 'driver')
+    if not os.path.islink(driver):
+        return ''
+    return os.path.basename(os.path.realpath(driver))
+
+
+def device_nodes(pattern, drivers, directory):
+    paths = []
+    for sysfs_path in sorted(glob.glob(pattern)):
+        if bound_driver(sysfs_path) not in drivers:
+            continue
+        device = os.path.join(directory, os.path.basename(sysfs_path))
+        if os.path.exists(device):
+            paths.append(device)
+    return paths
+
+
+def discover():
+    gpu = device_nodes(
+        '/sys/class/drm/card[0-9]*', {'i915', 'xe'}, '/dev/dri')
+    gpu.extend(device_nodes(
+        '/sys/class/drm/renderD*', {'i915', 'xe'}, '/dev/dri'))
+    npu = device_nodes(
+        '/sys/class/accel/accel*', {'intel_vpu'}, '/dev/accel')
+    return sorted(set(gpu)), sorted(set(npu))
 
 
 def write(kind, name, paths):
@@ -19,8 +93,8 @@ def write(kind, name, paths):
             },
         }],
     }
-    temporary = f'/etc/cdi/{name}.json.tmp'
-    destination = f'/etc/cdi/{name}.json'
+    temporary = f'/run/cdi/{name}.tmp.json'
+    destination = f'/run/cdi/{name}.json'
     with open(temporary, 'w') as stream:
         json.dump(document, stream, sort_keys=True, indent=2)
         stream.flush()
@@ -28,14 +102,14 @@ def write(kind, name, paths):
     os.replace(temporary, destination)
 
 
-for provider_file in ('intel-gpu.json', 'intel-npu.json'):
-    try:
-        os.remove(f'/etc/cdi/{provider_file}')
-    except FileNotFoundError:
-        pass
+gpu = []
+npu = []
+for _attempt in range(40):
+    gpu, npu = discover()
+    if gpu or npu:
+        break
+    time.sleep(0.25)
 
-gpu = sorted(glob.glob('/dev/dri/card*') + glob.glob('/dev/dri/renderD*'))
-npu = sorted(glob.glob('/dev/accel/accel*'))
 resources = []
 if gpu:
     write('intel.com/gpu', 'intel-gpu', gpu)
@@ -47,5 +121,5 @@ if npu:
 if resources:
     print('Intel provider activated: ' + ', '.join(resources))
 else:
-    print('No usable Intel GPU or NPU device nodes; activation is a no-op')
+    print('Intel drivers found no usable GPU or NPU; activation is a no-op')
 PY
