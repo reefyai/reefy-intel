@@ -20,6 +20,11 @@ Generic DRM helpers and `libdrm` remain in Reefy OS because they are shared by
 multiple providers. OpenVINO, Level Zero, Intel media, and other application
 runtimes remain in application images.
 
+The common layer reproduces Intel's VPU firmware redistribution notice. The
+pinned firmware release contains the binaries referenced by linux-firmware
+metadata but does not carry that notice in its archive, so the provider keeps
+an explicit reviewed copy under `licenses/`.
+
 The reusable publish workflow consumes exact modules, firmware, Reefy build ID,
 and kernel ABI evidence from firmware CI, creates an SBOM, publishes to
 `ghcr.io/reefyai/reefy-intel`, and signs the manifest through GitHub OIDC.

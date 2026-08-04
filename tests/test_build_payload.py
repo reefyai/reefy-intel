@@ -58,6 +58,9 @@ class BuildPayloadTests(unittest.TestCase):
             self.assertTrue(
                 (output / 'common-root/lib/firmware/intel/vpu/test.bin').is_file())
             self.assertTrue(
+                (output / 'common-root/usr/share/licenses/intel-provider/'
+                 'LICENSE.intel_vpu').is_file())
+            self.assertTrue(
                 (output / 'kernel-root/lib/modules/kernel/extra/intel/xe.ko').is_file())
             self.assertEqual(run.call_count, 2)
             for call in run.call_args_list:

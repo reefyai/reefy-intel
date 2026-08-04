@@ -38,6 +38,9 @@ def stage_common(firmware_root, root):
     licenses = firmware_root / 'usr/share/licenses/intel-provider'
     if licenses.is_dir():
         copy_tree(licenses, root / 'usr/share/licenses/intel-provider')
+    copy(
+        ROOT / 'licenses/LICENSE.intel_vpu',
+        root / 'usr/share/licenses/intel-provider/LICENSE.intel_vpu')
 
     marker = root / 'usr/share/reefy/providers/intel'
     marker.parent.mkdir(parents=True, exist_ok=True)
