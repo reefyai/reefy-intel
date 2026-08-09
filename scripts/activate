@@ -6,16 +6,22 @@ set -- ${REEFY_ARTIFACT_MOUNTS:?}
 unset IFS
 COMMON=${1:?missing common Intel layer}
 KERNEL_LAYER=${2:?missing Intel kernel layer}
+TOOLS=${3:?missing Intel tools layer}
 KERNEL_RELEASE=$(uname -r)
 MODULE_SOURCE="$KERNEL_LAYER/lib/modules/$KERNEL_RELEASE/extra/intel"
 I915_FIRMWARE_SOURCE="$COMMON/lib/firmware/i915"
 XE_FIRMWARE_SOURCE="$COMMON/lib/firmware/xe"
 NPU_FIRMWARE_SOURCE="$COMMON/lib/firmware/intel/vpu"
+XPU_SMI_ROOT=/run/reefy-xpu-smi
 
 [ -d "$MODULE_SOURCE" ]
 [ -d "$I915_FIRMWARE_SOURCE" ]
 [ -d "$XE_FIRMWARE_SOURCE" ]
 [ -d "$NPU_FIRMWARE_SOURCE" ]
+[ -x "$TOOLS/bin/xpu-smi" ]
+[ -x "$TOOLS/bin/xpu-smi.real" ]
+[ -d "$TOOLS/lib" ]
+[ -d "$TOOLS/share/xpum/resources/config" ]
 
 bind_read_only() {
     source=$1
@@ -27,11 +33,25 @@ bind_read_only() {
     fi
 }
 
+bind_file_read_only() {
+    source=$1
+    target=$2
+    mkdir -p "$(dirname "$target")"
+    touch "$target"
+    if ! mountpoint -q "$target"; then
+        mount --bind "$source" "$target"
+        mount -o remount,bind,ro,nodev,nosuid "$source" "$target"
+    fi
+}
+
 bind_read_only "$MODULE_SOURCE" \
     "/lib/modules/$KERNEL_RELEASE/extra/intel"
 bind_read_only "$I915_FIRMWARE_SOURCE" /lib/firmware/i915
 bind_read_only "$XE_FIRMWARE_SOURCE" /lib/firmware/xe
 bind_read_only "$NPU_FIRMWARE_SOURCE" /lib/firmware/intel/vpu
+bind_read_only "$TOOLS" "$XPU_SMI_ROOT"
+bind_read_only "$XPU_SMI_ROOT/share/xpum" /usr/share/xpum
+bind_file_read_only "$XPU_SMI_ROOT/bin/xpu-smi" /usr/bin/xpu-smi
 
 mkdir -p /run/cdi
 rm -f /run/cdi/intel-gpu.json /run/cdi/intel-gpu.tmp.json \

@@ -66,6 +66,10 @@ def stage_kernel(modules_root, kernel_release, root):
         copy(module, destination / module.name)
 
 
+def stage_tools(xpu_smi_root, root):
+    copy_tree(xpu_smi_root, root)
+
+
 def squash(source, destination):
     subprocess.run([
         'mksquashfs', str(source), str(destination),
@@ -79,6 +83,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--modules-root', type=Path, required=True)
     parser.add_argument('--firmware-root', type=Path, required=True)
+    parser.add_argument('--xpu-smi-root', type=Path, required=True)
     parser.add_argument('--kernel-release', required=True)
     parser.add_argument('--reefy-build-id', required=True)
     parser.add_argument('--kernel-abi-digest', required=True)
@@ -88,13 +93,17 @@ def main():
 
     common = args.output / 'common-root'
     kernel = args.output / 'kernel-root'
+    tools = args.output / 'tools-root'
     shutil.rmtree(common, ignore_errors=True)
     shutil.rmtree(kernel, ignore_errors=True)
+    shutil.rmtree(tools, ignore_errors=True)
     stage_common(args.firmware_root.resolve(), common)
     stage_kernel(
         args.modules_root.resolve(), args.kernel_release, kernel)
+    stage_tools(args.xpu_smi_root.resolve(), tools)
     squash(common, args.output / 'common.squashfs')
     squash(kernel, args.output / 'kernel.squashfs')
+    squash(tools, args.output / 'tools.squashfs')
 
     config = {
         'artifact_schema': 1,
