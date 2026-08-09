@@ -1,5 +1,74 @@
 {
   "provider": {
-    "version": "2"
+    "version": "3"
+  },
+  "xpu_smi": {
+    "version": "2.0.1",
+    "packages": [
+      {
+        "url": "https://github.com/intel/xpumanager/releases/download/v2.0.1/xpu-smi_2.0.1-1.24.04_amd64.deb",
+        "sha256": "454fecdec296a3566b748854ceb4688ebb055910fed458bd7dd4509f14407f0a"
+      },
+      {
+        "url": "https://ppa.launchpadcontent.net/kobuk-team/intel-graphics/ubuntu/pool/main/i/intel-compute-runtime/libze-intel-gpu1_26.22.38646.7-1~24.04~ppa1_amd64.deb",
+        "sha256": "a4e173e5ec0f179d8068b706bc2edfc971ce84103a3b206832667ee16aec621f"
+      },
+      {
+        "url": "https://ppa.launchpadcontent.net/kobuk-team/intel-graphics/ubuntu/pool/main/l/level-zero-loader/libze1_1.28.6-1~24.04~ppa1_amd64.deb",
+        "sha256": "ca4aec5982d46f92875659e74e459372f24c9d8add2810556c1c7e71531e1ec0"
+      },
+      {
+        "url": "https://ppa.launchpadcontent.net/kobuk-team/intel-graphics/ubuntu/pool/main/i/igsc/libigsc1_1.2.0-1~24.04~ppa1_amd64.deb",
+        "sha256": "0879456fe5ea6e44828607244292afea058621d12860fd4fec9fb5e8096ef84e"
+      },
+      {
+        "url": "https://ppa.launchpadcontent.net/kobuk-team/intel-graphics/ubuntu/pool/main/m/metee/libmetee6_6.2.1-1~24.04~ppa1_amd64.deb",
+        "sha256": "db86ebae5182ede60cbe56ea56a9329d987866a30da24b5726f17d81d5d72e3f"
+      },
+      {
+        "url": "https://ppa.launchpadcontent.net/kobuk-team/intel-graphics/ubuntu/pool/main/i/intel-gmmlib/libigdgmm12_22.10.0-1~24.04~ppa1_amd64.deb",
+        "sha256": "63fe9e124c3394193226c6cb8398dcabdc9306b5a10f63668118f7c799f5d792"
+      },
+      {
+        "url": "https://ppa.launchpadcontent.net/kobuk-team/intel-graphics/ubuntu/pool/main/i/intel-graphics-compiler/libigc2_2.36.5-1~24.04_amd64.deb",
+        "sha256": "0929d6888543e71e5ccd5b7581a31632c25cf26444a3fa7d954354dc189b59a6"
+      },
+      {
+        "url": "https://ppa.launchpadcontent.net/kobuk-team/intel-graphics/ubuntu/pool/main/i/intel-graphics-compiler/libigdfcl2_2.36.5-1~24.04_amd64.deb",
+        "sha256": "dd50b036aa959676fb5e76f4179c69f146af7c4eb90c0b9efd61a4785ffa214e"
+      },
+      {
+        "url": "https://archive.ubuntu.com/ubuntu/pool/universe/h/hwloc/libhwloc15_2.10.0-1build1_amd64.deb",
+        "sha256": "45acb4e6676f968d0f32ff1c5115cad0b61165931afa1a59282bda6f00d13c3b"
+      },
+      {
+        "url": "https://archive.ubuntu.com/ubuntu/pool/main/libp/libpciaccess/libpciaccess0_0.17-3ubuntu0.24.04.2_amd64.deb",
+        "sha256": "c0d818c0ebb2e61f4c0d75f532a8f2e1a48289fe1132f4936c790ed0fa164883"
+      },
+      {
+        "url": "https://archive.ubuntu.com/ubuntu/pool/main/s/systemd/libudev1_255.4-1ubuntu8.16_amd64.deb",
+        "sha256": "daab71b9b009bc72bddccecc1c2399ad0ef8151eb0421452fe03f39c23fb1412"
+      },
+      {
+        "url": "https://archive.ubuntu.com/ubuntu/pool/main/libc/libcap2/libcap2_2.66-5ubuntu2.4_amd64.deb",
+        "sha256": "23c627c77c66552a658e62852f244f4946dc543898e0ec5428d5dc6bffde2d6a"
+      },
+      {
+        "url": "https://archive.ubuntu.com/ubuntu/pool/main/z/zlib/zlib1g_1.3.dfsg-3.1ubuntu2.1_amd64.deb",
+        "sha256": "7074b6a2f6367a10d280c00a1cb02e74277709180bab4f2491a2f355ab2d6c20"
+      },
+      {
+        "url": "https://archive.ubuntu.com/ubuntu/pool/main/g/gcc-14/libstdc++6_14.2.0-4ubuntu2~24.04.1_amd64.deb",
+        "sha256": "a51f8de7829211db961a31f02158058ad1a95f92ac6d0a5dff6350e2821c54c0"
+      },
+      {
+        "url": "https://archive.ubuntu.com/ubuntu/pool/main/g/gcc-14/gcc-14-base_14.2.0-4ubuntu2~24.04.1_amd64.deb",
+        "sha256": "b95c172411a7fdae70307cf33a9f5320ba5e056b556454543dd5b679d5ce1c4f"
+      },
+      {
+        "url": "https://archive.ubuntu.com/ubuntu/pool/main/g/gcc-14/libgcc-s1_14.2.0-4ubuntu2~24.04.1_amd64.deb",
+        "sha256": "aa7fadbe33b78bcf99885318040601c550c208929565b179891d9a3cc2aa68cd"
+      }
+    ]
   }
 }
