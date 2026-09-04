@@ -67,6 +67,13 @@ for module in xe i915 intel_vpu; do
     echo "Intel provider loaded $module"
 done
 
+# Module loading can return before udev has created every matching device
+# node. Let queued uevents drain before discovery, then retain a bounded
+# stability check below for drivers that finish probing asynchronously.
+if command -v udevadm >/dev/null 2>&1; then
+    udevadm settle --timeout=10 || true
+fi
+
 python3 - <<'PY'
 import glob
 import json
@@ -124,9 +131,20 @@ def write(kind, name, paths):
 
 gpu = []
 npu = []
+previous = None
+stable_attempts = 0
 for _attempt in range(40):
     gpu, npu = discover()
-    if gpu or npu:
+    current = (gpu, npu)
+    if current == previous and (gpu or npu):
+        stable_attempts += 1
+    else:
+        stable_attempts = 0
+    previous = current
+    # Require one full second without a resource change. This avoids
+    # publishing only the first of GPU or NPU when their probes finish at
+    # different times, while retaining the existing ten-second upper bound.
+    if stable_attempts >= 4:
         break
     time.sleep(0.25)
 
