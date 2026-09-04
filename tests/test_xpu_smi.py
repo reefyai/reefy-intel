@@ -32,8 +32,8 @@ class StageXpuSmiTests(unittest.TestCase):
                 libraries.mkdir(parents=True)
                 for library in MODULE.LIBRARIES:
                     name = (
-                        f'{library}.36.5+0'
-                        if library == 'libiga64.so.2' else library)
+                        f'{library}.3.0'
+                        if library == 'libigsc.so.1' else library)
                     (libraries / name).write_text(library)
 
             with mock.patch.object(
@@ -50,7 +50,7 @@ class StageXpuSmiTests(unittest.TestCase):
                 (output / 'share/xpum/resources/config/pci.conf').read_text(),
                 'pci')
             self.assertTrue((output / 'lib/libze_loader.so.1').is_file())
-            self.assertTrue((output / 'lib/libiga64.so.2').is_symlink())
+            self.assertTrue((output / 'lib/libigsc.so.1').is_symlink())
             self.assertEqual(
                 (output / 'licenses/xpu-smi/copyright').read_text(),
                 'license')

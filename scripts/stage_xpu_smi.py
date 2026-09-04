@@ -13,20 +13,11 @@ from urllib.parse import urlparse
 ROOT = Path(__file__).resolve().parent.parent
 VERSIONS = json.loads((ROOT / 'versions.json').read_text())
 LIBRARIES = (
-    'libcap.so.2',
-    'libgcc_s.so.1',
     'libhwloc.so.15',
-    'libiga64.so.2',
     'libigdgmm.so.12',
-    'libigc.so.2',
-    'libigdfcl.so.2',
     'libigsc.so.1',
     'libmetee.so.6',
-    'libopencl-clang.so.16',
     'libpciaccess.so.0',
-    'libstdc++.so.6',
-    'libudev.so.1',
-    'libz.so.1',
     'libze_intel_gpu.so.1',
     'libze_loader.so.1',
     'libze_tracing_layer.so.1',
