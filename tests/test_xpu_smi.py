@@ -10,9 +10,24 @@ SCRIPT = Path(__file__).resolve().parents[1] / 'scripts/stage_xpu_smi.py'
 SPEC = importlib.util.spec_from_file_location('intel_stage_xpu_smi', SCRIPT)
 MODULE = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(MODULE)
+VERSIONS = json.loads(
+    (Path(__file__).resolve().parents[1] / 'versions.json').read_text())
 
 
 class StageXpuSmiTests(unittest.TestCase):
+    def test_package_urls_are_immutable_published_files(self):
+        urls = [
+            package['url']
+            for package in VERSIONS['xpu_smi']['packages']
+        ]
+        self.assertFalse(any(
+            'ppa.launchpadcontent.net' in url
+            or 'archive.ubuntu.com' in url
+            for url in urls))
+        self.assertTrue(all(
+            '/releases/download/' in url or '/+files/' in url
+            for url in urls))
+
     def test_stages_private_runtime_wrapper_resources_and_licenses(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

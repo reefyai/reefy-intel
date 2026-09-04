@@ -33,7 +33,10 @@ def download(package, output):
         return destination
     temporary.unlink(missing_ok=True)
     try:
-        with urllib.request.urlopen(url) as response, temporary.open('wb') as stream:
+        request = urllib.request.Request(
+            url, headers={'User-Agent': 'reefy-intel-provider/1'})
+        with (urllib.request.urlopen(request) as response,
+              temporary.open('wb') as stream):
             while chunk := response.read(1024 * 1024):
                 stream.write(chunk)
         actual = sha256(temporary)
