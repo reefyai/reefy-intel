@@ -40,6 +40,15 @@ class WorkflowTests(unittest.TestCase):
         self.assertIn("{'intel_vpu'}", activator)
         self.assertNotIn("glob.glob('/dev/dri", activator)
 
+    def test_activator_waits_for_udev_and_stable_device_set(self):
+        activator = (
+            Path(__file__).parents[1] / 'scripts/activate'
+        ).read_text()
+
+        self.assertIn('udevadm settle --timeout=10', activator)
+        self.assertIn('stable_attempts >= 4', activator)
+        self.assertNotIn('if gpu or npu:\n        break', activator)
+
     def test_xpu_smi_is_exposed_only_on_the_host(self):
         activator = (
             Path(__file__).parents[1] / 'scripts/activate'
