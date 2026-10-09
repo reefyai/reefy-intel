@@ -52,6 +52,7 @@ jobs:
           sudo install -m 0755 /tmp/cosign /usr/local/bin/cosign
 
       - name: Build immutable payload
+        timeout-minutes: 10
         run: |
           . inputs/metadata.env
           python3 scripts/download_xpu_smi.py --output inputs/xpu-smi-packages

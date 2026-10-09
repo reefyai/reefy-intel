@@ -30,6 +30,14 @@ the artifact store can reuse its content digest across kernel and firmware
 rebuilds. The pinned runtime is approximately 69 MiB as an XZ SquashFS layer
 and 282 MiB when mounted.
 
+Package downloads use a 30-second socket timeout and at most four attempts.
+Transient HTTP 408, 429, 500, 502, 503 and 504 responses, connection failures,
+and timeouts retry after 2, 4 and 8 seconds. Each attempt discards partial
+files and verifies the pinned SHA-256 before replacing the destination.
+Other HTTP failures and checksum mismatches fail immediately. The publish
+workflow also limits the entire immutable-payload step to 10 minutes, since
+the socket timeout bounds network inactivity rather than total download time.
+
 The common layer reproduces Intel's VPU firmware redistribution notice. The
 pinned firmware release contains the binaries referenced by linux-firmware
 metadata but does not carry that notice in its archive, so the provider keeps
