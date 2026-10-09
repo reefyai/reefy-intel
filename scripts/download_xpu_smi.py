@@ -4,6 +4,9 @@
 import argparse
 import hashlib
 import json
+import sys
+import time
+import urllib.error
 import urllib.request
 from pathlib import Path
 from urllib.parse import urlparse
@@ -11,6 +14,16 @@ from urllib.parse import urlparse
 
 ROOT = Path(__file__).resolve().parent.parent
 VERSIONS = json.loads((ROOT / 'versions.json').read_text())
+DOWNLOAD_TIMEOUT_SECONDS = 30
+DOWNLOAD_ATTEMPTS = 4
+RETRY_HTTP_STATUS = {408, 429, 500, 502, 503, 504}
+
+
+def retryable(error):
+    if isinstance(error, urllib.error.HTTPError):
+        return error.code in RETRY_HTTP_STATUS
+    return isinstance(error, (urllib.error.URLError, TimeoutError,
+                              ConnectionError))
 
 
 def sha256(path):
@@ -32,18 +45,29 @@ def download(package, output):
     if destination.is_file() and sha256(destination) == expected:
         return destination
     temporary.unlink(missing_ok=True)
-    try:
-        with urllib.request.urlopen(url) as response, temporary.open('wb') as stream:
-            while chunk := response.read(1024 * 1024):
-                stream.write(chunk)
-        actual = sha256(temporary)
-        if actual != expected:
-            raise SystemExit(
-                f'checksum mismatch for {name}: expected {expected}, got {actual}')
-        temporary.replace(destination)
-    finally:
-        temporary.unlink(missing_ok=True)
-    return destination
+    for attempt in range(1, DOWNLOAD_ATTEMPTS + 1):
+        try:
+            with urllib.request.urlopen(
+                    url, timeout=DOWNLOAD_TIMEOUT_SECONDS) as response, \
+                    temporary.open('wb') as stream:
+                while chunk := response.read(1024 * 1024):
+                    stream.write(chunk)
+            actual = sha256(temporary)
+            if actual != expected:
+                raise SystemExit(
+                    f'checksum mismatch for {name}: expected {expected}, got {actual}')
+            temporary.replace(destination)
+            return destination
+        except (urllib.error.URLError, TimeoutError, ConnectionError) as error:
+            if not retryable(error) or attempt == DOWNLOAD_ATTEMPTS:
+                raise
+            delay = 2 ** attempt
+            print(f'download {name} failed (attempt {attempt}/'
+                  f'{DOWNLOAD_ATTEMPTS}): {error}; retrying in {delay}s',
+                  file=sys.stderr)
+        finally:
+            temporary.unlink(missing_ok=True)
+        time.sleep(delay)
 
 
 def main():
