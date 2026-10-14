@@ -26,7 +26,13 @@ class DownloadXpuSmiTests(unittest.TestCase):
         }
         self.destination = self.output / 'runtime.deb'
         self.partial = self.output / '.runtime.deb.tmp'
-        self.sleep = mock.patch.object(MODULE.time, 'sleep').start()
+        self.now = 0
+        mock.patch.object(MODULE.time, 'monotonic',
+                          side_effect=lambda: self.now).start()
+        def sleep(delay):
+            self.now += delay
+        self.sleep = mock.patch.object(MODULE.time, 'sleep',
+                                       side_effect=sleep).start()
         self.addCleanup(mock.patch.stopall)
 
     def http_error(self, status):
@@ -64,11 +70,36 @@ class DownloadXpuSmiTests(unittest.TestCase):
                                side_effect=self.http_error(503)) as request:
             with self.assertRaises(urllib.error.HTTPError):
                 MODULE.download(self.package, self.output)
-        self.assertEqual(request.call_count, 4)
+        self.assertLessEqual(request.call_count, MODULE.DOWNLOAD_ATTEMPTS)
         self.assertEqual(self.sleep.call_args_list,
-                         [mock.call(2), mock.call(4), mock.call(8)])
+                         [mock.call(2), mock.call(4), mock.call(8), mock.call(16)]
+                         + [mock.call(30)] * 9)
+        self.assertEqual(self.now, 300)
         self.assertFalse(self.destination.exists())
         self.assertFalse(self.partial.exists())
+
+    def test_recovers_after_outage_beyond_old_retry_window(self):
+        def request(url, timeout):
+            if self.now < 90:
+                raise self.http_error(502)
+            return io.BytesIO(self.data)
+        with mock.patch.object(MODULE.urllib.request, 'urlopen',
+                               side_effect=request):
+            MODULE.download(self.package, self.output)
+        self.assertEqual(self.now, 90)
+        self.assertEqual(self.destination.read_bytes(), self.data)
+
+    def test_slow_failed_requests_count_toward_total_budget(self):
+        def request(url, timeout):
+            self.now += timeout
+            raise self.http_error(503)
+        with mock.patch.object(MODULE.urllib.request, 'urlopen',
+                               side_effect=request):
+            with self.assertRaises(urllib.error.HTTPError):
+                MODULE.download(self.package, self.output)
+        self.assertEqual(self.now, 300)
+        self.assertFalse(self.partial.exists())
+        self.assertFalse(self.destination.exists())
 
     def test_partial_response_is_discarded_before_retry(self):
         response = mock.MagicMock()

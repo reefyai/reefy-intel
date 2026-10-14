@@ -15,7 +15,9 @@ from urllib.parse import urlparse
 ROOT = Path(__file__).resolve().parent.parent
 VERSIONS = json.loads((ROOT / 'versions.json').read_text())
 DOWNLOAD_TIMEOUT_SECONDS = 30
-DOWNLOAD_ATTEMPTS = 4
+DOWNLOAD_ATTEMPTS = 20
+DOWNLOAD_BUDGET_SECONDS = 300
+MAX_RETRY_DELAY_SECONDS = 30
 RETRY_HTTP_STATUS = {408, 429, 500, 502, 503, 504}
 
 
@@ -45,13 +47,19 @@ def download(package, output):
     if destination.is_file() and sha256(destination) == expected:
         return destination
     temporary.unlink(missing_ok=True)
+    deadline = time.monotonic() + DOWNLOAD_BUDGET_SECONDS
     for attempt in range(1, DOWNLOAD_ATTEMPTS + 1):
         try:
             with urllib.request.urlopen(
-                    url, timeout=DOWNLOAD_TIMEOUT_SECONDS) as response, \
+                    url, timeout=min(DOWNLOAD_TIMEOUT_SECONDS,
+                                     max(0.001, deadline - time.monotonic()))) as response, \
                     temporary.open('wb') as stream:
                 while chunk := response.read(1024 * 1024):
+                    if time.monotonic() >= deadline:
+                        raise TimeoutError("package download budget exhausted")
                     stream.write(chunk)
+            if time.monotonic() >= deadline:
+                raise TimeoutError("package download budget exhausted")
             actual = sha256(temporary)
             if actual != expected:
                 raise SystemExit(
@@ -59,15 +67,21 @@ def download(package, output):
             temporary.replace(destination)
             return destination
         except (urllib.error.URLError, TimeoutError, ConnectionError) as error:
-            if not retryable(error) or attempt == DOWNLOAD_ATTEMPTS:
+            remaining = deadline - time.monotonic()
+            if (not retryable(error) or attempt == DOWNLOAD_ATTEMPTS
+                    or remaining <= 0):
                 raise
-            delay = 2 ** attempt
+            delay = min(2 ** attempt, MAX_RETRY_DELAY_SECONDS, remaining)
             print(f'download {name} failed (attempt {attempt}/'
                   f'{DOWNLOAD_ATTEMPTS}): {error}; retrying in {delay}s',
                   file=sys.stderr)
+            temporary.unlink(missing_ok=True)
+            time.sleep(delay)
+            if time.monotonic() >= deadline:
+                raise
         finally:
             temporary.unlink(missing_ok=True)
-        time.sleep(delay)
+
 
 
 def main():
