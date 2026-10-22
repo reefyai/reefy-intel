@@ -44,6 +44,12 @@ bind_file_read_only() {
     fi
 }
 
+# Module-tree publication, depmod and modprobe share one host index.
+# Discovery and vendor-specific CDI publication below may overlap other hooks.
+mkdir -p /run/reefy-artifacts/locks
+exec 9>/run/reefy-artifacts/locks/host-module-activation
+flock -x 9
+
 bind_read_only "$MODULE_SOURCE" \
     "/lib/modules/$KERNEL_RELEASE/extra/intel"
 bind_read_only "$I915_FIRMWARE_SOURCE" /lib/firmware/i915
@@ -66,6 +72,9 @@ for module in xe i915 intel_vpu; do
     modprobe "$module"
     echo "Intel provider loaded $module"
 done
+
+flock -u 9
+exec 9>&-
 
 # Module loading can return before udev has created every matching device
 # node. Let queued uevents drain before discovery, then retain a bounded
