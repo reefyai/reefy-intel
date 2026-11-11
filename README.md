@@ -69,8 +69,9 @@ https://ubuntu.com/docs/launchpad/developer/reference/services/ubuntu-mirrors-in
 The self-hosted `Verify pinned package mirrors` Actions workflow reproduces the
 unchanged downloader's failure and verifies recovery with the same real HTTPS
 fixtures, including a pruned first mirror, unchanged package bytes, checksum
-refusal and untrusted-certificate refusal. It also checks a real package against
-its pre-existing hash. JSON results, source fingerprints and logs are retained.
+refusal and untrusted-certificate refusal. It also downloads every pinned Ubuntu
+package and checks its declared hash. JSON results, source fingerprints and logs
+are retained.
 
 Successful reusable publisher jobs also retain the original package files in an
 Actions cache keyed by the exact `versions.json` contents, platform and cache
