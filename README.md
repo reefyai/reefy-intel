@@ -71,3 +71,9 @@ unchanged downloader's failure and verifies recovery with the same real HTTPS
 fixtures, including a pruned first mirror, unchanged package bytes, checksum
 refusal and untrusted-certificate refusal. It also checks a real package against
 its pre-existing hash. JSON results, source fingerprints and logs are retained.
+
+Successful reusable publisher jobs also retain the original package files in an
+Actions cache keyed by the exact `versions.json` contents, platform and cache
+revision. The downloader rechecks every restored file against the existing hash;
+a cache hit cannot bypass verification. A cache must be populated successfully
+before it can help during an outage, and normal cache retention still applies.
