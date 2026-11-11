@@ -31,6 +31,14 @@ class WorkflowTests(unittest.TestCase):
             'output/tools.squashfs:application/vnd.reefy.squashfs.v1',
             workflow)
 
+    def test_runtime_cache_is_keyed_by_unchanged_package_pins(self):
+        workflow = (Path(__file__).parents[1] / '.github/workflows/publish.yml').read_text()
+        self.assertIn('uses: actions/cache@v4', workflow)
+        self.assertIn('path: inputs/xpu-smi-packages', workflow)
+        self.assertIn("hashFiles('versions.json')", workflow)
+        self.assertIn('python3 scripts/download_xpu_smi.py --output inputs/xpu-smi-packages', workflow)
+        self.assertNotIn('restore-keys:', workflow)
+
     def test_activator_filters_nodes_by_bound_intel_driver(self):
         activator = (
             Path(__file__).parents[1] / 'scripts/activate'

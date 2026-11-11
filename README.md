@@ -48,3 +48,32 @@ The reusable publish workflow consumes exact modules, firmware, Reefy build ID,
 and kernel ABI evidence from firmware CI, creates an SBOM, publishes to
 `ghcr.io/reefyai/reefy-intel`, and signs the manifest through GitHub OIDC.
 Desired state uses only resolved manifest digests.
+
+### Pinned Ubuntu download backups
+
+Ubuntu snapshot URLs in `versions.json` remain the canonical package identities.
+If a snapshot request fails, the downloader tries the identical `pool/` path on
+Ubuntu's primary archive, Azure archive and US-East EC2 archive over HTTPS.
+Every source must match the existing SHA-256 before replacing a cached file or
+staging a library. There is no package-version substitution or checksum refresh.
+A checksum mismatch is fatal. Missing files advance to another source; transient
+failures share the original total retry budget across all endpoints.
+
+Live mirrors can prune superseded packages. Backups improve availability when
+those bytes are retained, but cannot guarantee recovery of every historical pin.
+A complete upstream outage still blocks publication safely. Ubuntu documents
+its archive and snapshot services at
+https://ubuntu.com/server/docs/how-to/software/snapshot-service/ and
+https://ubuntu.com/docs/launchpad/developer/reference/services/ubuntu-mirrors-index/.
+
+The self-hosted `Verify pinned package mirrors` Actions workflow reproduces the
+unchanged downloader's failure and verifies recovery with the same real HTTPS
+fixtures, including a pruned first mirror, unchanged package bytes, checksum
+refusal and untrusted-certificate refusal. It also checks a real package against
+its pre-existing hash. JSON results, source fingerprints and logs are retained.
+
+Successful reusable publisher jobs also retain the original package files in an
+Actions cache keyed by the exact `versions.json` contents, platform and cache
+revision. The downloader rechecks every restored file against the existing hash;
+a cache hit cannot bypass verification. A cache must be populated successfully
+before it can help during an outage, and normal cache retention still applies.
