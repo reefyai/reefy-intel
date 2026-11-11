@@ -34,8 +34,8 @@
         "sha256": "45acb4e6676f968d0f32ff1c5115cad0b61165931afa1a59282bda6f00d13c3b"
       },
       {
-        "url": "https://snapshot.ubuntu.com/ubuntu/20260901T000000Z/pool/main/libp/libpciaccess/libpciaccess0_0.17-3ubuntu0.24.04.2_amd64.deb",
-        "sha256": "c0d818c0ebb2e61f4c0d75f532a8f2e1a48289fe1132f4936c790ed0fa164883"
+        "url": "https://snapshot.ubuntu.com/ubuntu/20260901T000000Z/pool/main/libp/libpciaccess/libpciaccess0_0.17-3ubuntu0.24.04.3_amd64.deb",
+        "sha256": "87a3b1c2a09f54d229e5e1f5424adc806e8f99bbb8aa8c8dea114b727f7a5a96"
       }
     ]
   }

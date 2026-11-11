@@ -35,7 +35,7 @@ jobs:
           python3 tests/run_download_regression.py --output results/fixed.json 2>&1 | tee results/fixed.log
           git rev-parse HEAD > results/tested-source.txt
           sha256sum versions.json > results/pinned-versions.sha256
-      - name: Verify one real unchanged Ubuntu package through the downloader
+      - name: Verify every pinned Ubuntu package through the downloader
         run: |
           set -o pipefail
           python3 - <<'PY' 2>&1 | tee results/live-download.log
@@ -44,15 +44,20 @@ jobs:
           spec = importlib.util.spec_from_file_location('download', 'scripts/download_xpu_smi.py')
           module = importlib.util.module_from_spec(spec)
           spec.loader.exec_module(module)
-          package = next(p for p in module.VERSIONS['xpu_smi']['packages'] if 'libhwloc15_' in p['url'])
+          packages = [p for p in module.VERSIONS['xpu_smi']['packages']
+                      if p['url'].startswith('https://snapshot.ubuntu.com/ubuntu/')]
+          assert packages, 'No pinned Ubuntu packages were selected'
           output = Path('results/packages')
           output.mkdir()
-          path = module.download(package, output)
-          actual = hashlib.sha256(path.read_bytes()).hexdigest()
-          assert actual == package['sha256']
+          verified = []
+          for package in packages:
+              path = module.download(package, output)
+              actual = hashlib.sha256(path.read_bytes()).hexdigest()
+              assert actual == package['sha256']
+              verified.append({'canonical_url': package['url'], 'sha256': actual,
+                               'bytes': path.stat().st_size})
           Path('results/live-download.json').write_text(json.dumps({
-              'canonical_url': package['url'], 'sha256': actual, 'bytes': path.stat().st_size,
-              'pinned_descriptor_unchanged': True}, indent=2) + '\n')
+              'packages': verified, 'pinned_descriptors_unchanged': True}, indent=2) + '\n')
           PY
       - uses: actions/upload-artifact@v4
         if: always()
