@@ -1,6 +1,7 @@
 import hashlib
 import importlib.util
 import io
+import os
 import tempfile
 import unittest
 import urllib.error
@@ -8,7 +9,8 @@ from pathlib import Path
 from unittest import mock
 
 
-SCRIPT = Path(__file__).resolve().parents[1] / 'scripts/download_xpu_smi.py'
+SCRIPT = Path(os.environ.get('INTEL_DOWNLOAD_SCRIPT',
+    str(Path(__file__).resolve().parents[1] / 'scripts/download_xpu_smi.py')))
 SPEC = importlib.util.spec_from_file_location('intel_download_xpu_smi', SCRIPT)
 MODULE = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(MODULE)

@@ -1,0 +1,65 @@
+name: Verify pinned package mirrors
+on:
+  workflow_dispatch:
+  push:
+    paths: ['scripts/**', 'tests/**', 'versions.json', '.github/workflows/download-validation.yml']
+  pull_request:
+    paths: ['scripts/**', 'tests/**', 'versions.json', '.github/workflows/download-validation.yml']
+permissions:
+  contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.head.repo.full_name || github.repository }}-${{ github.event_name == 'workflow_dispatch' && github.run_id || (github.head_ref && format('refs/heads/{0}', github.head_ref)) || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref_type == 'branch') }}
+jobs:
+  verify:
+    if: (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && github.repository == 'reefyai/reefy-intel'
+    runs-on: [self-hosted, Linux, X64, big-bird]
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Reproduce immutable baseline with the same HTTPS cases
+        run: |
+          mkdir -p results "$RUNNER_TEMP/mirror-baseline/scripts"
+          git show 336511d98000969b14134a07b022e1e3f2efb73a:scripts/download_xpu_smi.py > "$RUNNER_TEMP/mirror-baseline/scripts/download_xpu_smi.py"
+          git show 336511d98000969b14134a07b022e1e3f2efb73a:versions.json > "$RUNNER_TEMP/mirror-baseline/versions.json"
+          set -o pipefail
+          INTEL_DOWNLOAD_SCRIPT="$RUNNER_TEMP/mirror-baseline/scripts/download_xpu_smi.py" \
+            python3 tests/run_download_regression.py --expect-baseline \
+            --output results/baseline.json 2>&1 | tee results/baseline.log
+      - name: Verify fixed recovery and all refusal regressions
+        run: |
+          set -o pipefail
+          python3 -m unittest discover -s tests -v 2>&1 | tee results/tests.log
+          python3 tests/run_download_regression.py --output results/fixed.json 2>&1 | tee results/fixed.log
+          git rev-parse HEAD > results/tested-source.txt
+          sha256sum versions.json > results/pinned-versions.sha256
+      - name: Verify one real unchanged Ubuntu package through the downloader
+        run: |
+          set -o pipefail
+          python3 - <<'PY' 2>&1 | tee results/live-download.log
+          import hashlib, importlib.util, json
+          from pathlib import Path
+          spec = importlib.util.spec_from_file_location('download', 'scripts/download_xpu_smi.py')
+          module = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(module)
+          package = next(p for p in module.VERSIONS['xpu_smi']['packages'] if 'libhwloc15_' in p['url'])
+          output = Path('results/packages')
+          output.mkdir()
+          path = module.download(package, output)
+          actual = hashlib.sha256(path.read_bytes()).hexdigest()
+          assert actual == package['sha256']
+          Path('results/live-download.json').write_text(json.dumps({
+              'canonical_url': package['url'], 'sha256': actual, 'bytes': path.stat().st_size,
+              'pinned_descriptor_unchanged': True}, indent=2) + '\n')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pinned-package-mirror-evidence
+          path: |
+            results/*.json
+            results/*.log
+            results/*.txt
+            results/*.sha256
